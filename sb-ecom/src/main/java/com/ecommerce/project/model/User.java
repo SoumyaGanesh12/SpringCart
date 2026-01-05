@@ -2,13 +2,16 @@ package com.ecommerce.project.model;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -58,6 +61,10 @@ public class User {
 	
 	@Column(nullable=false)
 	private Boolean active = true;
+	
+	// One User has one cart
+	@OneToOne(mappedBy ="user",cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	private Cart cart;
 	
 	@Column(nullable=false, updatable=false)
 	private LocalDateTime createdAt;

@@ -16,7 +16,7 @@ public class UserResponseDTO {
 	private String lastname;
 	private String phonenumber;
 	private String address;
-	private String role;
+	private String role; // Default - CUSTOMER
 	private Boolean active;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
