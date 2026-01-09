@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.ecommerce.project.dto.OrderItemDTO;
@@ -24,7 +25,7 @@ import com.ecommerce.project.model.User;
 import com.ecommerce.project.repository.CartRepository;
 import com.ecommerce.project.repository.OrderRepository;
 import com.ecommerce.project.repository.ProductRepository;
-import com.ecommerce.project.repository.UserRepository;
+import com.ecommerce.project.security.CustomUserDetails;
 
 import jakarta.transaction.Transactional;
 
@@ -36,27 +37,37 @@ public class OrderServiceImpl implements OrderService {
 	private OrderRepository orderRepo;
 	
 	@Autowired
-	private UserRepository userRepo;
-	
-	@Autowired
 	private CartRepository cartRepo;
 	
 	@Autowired
 	private ProductRepository productRepo;
 	
+	// Get authenticated user
+	private User getAuthenticatedUser() {
+		Object principal = SecurityContextHolder.getContext()
+				.getAuthentication()
+				.getPrincipal();
+		
+		if(!(principal instanceof CustomUserDetails)) {
+			throw new BadRequestException("User not authenticated");
+		}
+		
+		User user = ((CustomUserDetails) principal).getUser();
+		if(!user.getActive()) throw new BadRequestException("User account is inactive");
+		
+		return user;
+	}
+	
 	// Place order from cart
 	@Override
-	public OrderResponseDTO placeOrder(String userId, PlaceOrderRequestDTO placeOrderReqdto) {
-		// Find user
-		User user = userRepo.findByUserId(userId)
-				.orElseThrow(() -> new ResourceNotFoundException(
-						"User with Id " + userId + " not found"
-		));
+	public OrderResponseDTO placeOrder(PlaceOrderRequestDTO placeOrderReqdto) {
+		// Get authenticated user
+		User user = getAuthenticatedUser();
 		
 		// FInd user's cart
 		Cart cart = cartRepo.findByUserId(user.getId())
 				.orElseThrow(() -> new ResourceNotFoundException(
-						"Cart not found for user " + userId
+						"Cart not found for user " + user.getUserId()
 		));
 		
 		// Check if cart is empty
@@ -119,21 +130,29 @@ public class OrderServiceImpl implements OrderService {
 	// Get order by orderId
 	@Override
 	public OrderResponseDTO getOrderById(String orderId) {
+		// Get authenticated user
+		User user = getAuthenticatedUser();
+		
 		Order order = orderRepo.findByOrderId(orderId)
 				.orElseThrow(() -> new ResourceNotFoundException(
 						"Order with Id " + orderId + " not found"
 		));
 		
+		// Only the order owner or admin can view
+	    boolean isOwner = order.getUser().getId().equals(user.getId());
+	    boolean isAdmin = user.getRole().toString().equalsIgnoreCase("ADMIN");
+
+	    if (!isOwner && !isAdmin) {
+	        throw new BadRequestException("Permission denied to view this order");
+	    }
+		
 		return convertToResponseDTO(order);
 	}
 	
 	// Get all orders for a user
-	public List<OrderResponseDTO> getOrdersByUser(String userId){
-		// Find user
-		User user = userRepo.findByUserId(userId)
-				.orElseThrow(() -> new ResourceNotFoundException(
-						"User with Id " + userId + " not found"
-		));
+	public List<OrderResponseDTO> getOrdersByUser(){
+		// Get authenticated user
+		User user = getAuthenticatedUser();
 		
 		List<Order> orders = orderRepo.findByUserId(user.getId());
 		
@@ -142,7 +161,49 @@ public class OrderServiceImpl implements OrderService {
 			.collect(Collectors.toList());
 	}
 	
-	// Get all orders
+	// Cancel order by owner/ admin
+	@Override
+	public OrderResponseDTO cancelOrder(String orderId) {
+		// Get authenticated user
+		User user = getAuthenticatedUser();
+		
+		Order order = orderRepo.findByOrderId(orderId)
+				.orElseThrow(() -> new ResourceNotFoundException(
+						"Order with Id " + orderId + " not found"
+		));
+		
+		// Only the order owner or an admin can cancel
+	    boolean isOwner = order.getUser().getId().equals(user.getId());
+	    boolean isAdmin = user.getRole().toString().equalsIgnoreCase("ADMIN");
+		
+	    if (!isOwner && !isAdmin) {
+	        throw new BadRequestException("Permission denied to cancel this order");
+	    }
+	    
+		// Can only cancel if not shipped
+		if(order.getStatus() == Order.OrderStatus.SHIPPED ||
+				order.getStatus() == Order.OrderStatus.DELIVERED) {
+			throw new BadRequestException("Cannot cancel order that has been shipped or delivered");
+		}
+		
+		if(order.getStatus() == Order.OrderStatus.CANCELLED) {
+			 throw new BadRequestException("Order is already cancelled");
+		}
+		
+		// Restore stock for all items
+		for(OrderItem orderItem: order.getOrderItems()) {
+			Product product = orderItem.getProduct();
+			product.setStockQuantity(product.getStockQuantity() + orderItem.getQuantity());
+			productRepo.save(product);
+		}
+		
+		// Update order status
+		order.setStatus(Order.OrderStatus.CANCELLED);
+		Order cancelledOrder = orderRepo.save(order);
+		return convertToResponseDTO(cancelledOrder);
+	}
+	
+	// Get all orders (admin)
 	@Override
 	public List<OrderResponseDTO> getAllOrders(){
 		List<Order> orders = orderRepo.findAll();
@@ -151,7 +212,7 @@ public class OrderServiceImpl implements OrderService {
 			.collect(Collectors.toList());
 	}
 	
-	// Get all orders with pagination
+	// Get all orders with pagination (admin)
 	@Override
 	public Page<OrderResponseDTO> getAllOrders(Pageable pageable){
 		Page<Order> orderPage = orderRepo.findAll(pageable);
@@ -190,37 +251,6 @@ public class OrderServiceImpl implements OrderService {
 		Order updatedOrder = orderRepo.save(order);
 		
 		return convertToResponseDTO(updatedOrder);
-	}
-	
-	// Cancel order
-	@Override
-	public OrderResponseDTO cancelOrder(String orderId) {
-		Order order = orderRepo.findByOrderId(orderId)
-				.orElseThrow(() -> new ResourceNotFoundException(
-						"Order with Id " + orderId + " not found"
-		));
-		
-		// Can only cancel if not shipped
-		if(order.getStatus() == Order.OrderStatus.SHIPPED ||
-				order.getStatus() == Order.OrderStatus.DELIVERED) {
-			throw new BadRequestException("Cannot cancel order that has been shipped or delivered");
-		}
-		
-		if(order.getStatus() == Order.OrderStatus.CANCELLED) {
-			 throw new BadRequestException("Order is already cancelled");
-		}
-		
-		// Restore stock for all items
-		for(OrderItem orderItem: order.getOrderItems()) {
-			Product product = orderItem.getProduct();
-			product.setStockQuantity(product.getStockQuantity() + orderItem.getQuantity());
-			productRepo.save(product);
-		}
-		
-		// Update order status
-		order.setStatus(Order.OrderStatus.CANCELLED);
-		Order cancelledOrder = orderRepo.save(order);
-		return convertToResponseDTO(cancelledOrder);
 	}
 	
 	// Helped methods

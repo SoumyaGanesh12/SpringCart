@@ -31,16 +31,16 @@ public class OrderController {
     private OrderService orderService;
     
     // Place order from cart
-    @PostMapping("/users/{userId}/orders/place")
+    // @PostMapping("/users/{userId}/orders/place") // Remove userId from URL and get user details from JWT token
+    @PostMapping("/orders/place")
     public ResponseEntity<OrderResponseDTO> placeOrder(
-            @PathVariable String userId,
             @RequestBody PlaceOrderRequestDTO placeOrderRequest) {
         
-        OrderResponseDTO order = orderService.placeOrder(userId, placeOrderRequest);
+        OrderResponseDTO order = orderService.placeOrder(placeOrderRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
     
-    // Get order by orderId
+    // Get order by orderId (user)
     @GetMapping("/orders/{orderId}")
     public ResponseEntity<OrderResponseDTO> getOrderById(@PathVariable String orderId) {
         OrderResponseDTO order = orderService.getOrderById(orderId);
@@ -48,10 +48,17 @@ public class OrderController {
     }
     
     // Get user's order history
-    @GetMapping("/users/{userId}/orders")
-    public ResponseEntity<List<OrderResponseDTO>> getOrdersByUser(@PathVariable String userId) {
-        List<OrderResponseDTO> orders = orderService.getOrdersByUser(userId);
+    @GetMapping("/orders")
+    public ResponseEntity<List<OrderResponseDTO>> getOrdersByUser() {
+        List<OrderResponseDTO> orders = orderService.getOrdersByUser();
         return ResponseEntity.ok(orders);
+    }
+    
+    // Cancel order by orderId (owner/admin)
+    @PatchMapping("/orders/{orderId}/cancel")
+    public ResponseEntity<OrderResponseDTO> cancelOrder(@PathVariable String orderId) {
+        OrderResponseDTO order = orderService.cancelOrder(orderId);
+        return ResponseEntity.ok(order);
     }
     
     // Get all orders
@@ -86,13 +93,6 @@ public class OrderController {
             @RequestBody UpdateOrderStatusRequestDTO statusRequest) {
         
         OrderResponseDTO order = orderService.updateOrderStatus(orderId, statusRequest);
-        return ResponseEntity.ok(order);
-    }
-    
-    // Cancel order
-    @PatchMapping("/orders/{orderId}/cancel")
-    public ResponseEntity<OrderResponseDTO> cancelOrder(@PathVariable String orderId) {
-        OrderResponseDTO order = orderService.cancelOrder(orderId);
         return ResponseEntity.ok(order);
     }
 }

@@ -10,24 +10,24 @@ import com.ecommerce.project.dto.PlaceOrderRequestDTO;
 import com.ecommerce.project.dto.UpdateOrderStatusRequestDTO;
 
 public interface OrderService {
-	// Place order from cart
-	OrderResponseDTO placeOrder(String userId, PlaceOrderRequestDTO placeOrderReqdto);
+	// Place order from cart (logged-in user)
+	OrderResponseDTO placeOrder(PlaceOrderRequestDTO placeOrderReqdto);
 	
 	// Get order by orderId
 	OrderResponseDTO getOrderById(String orderId);
 	
 	// Get all orders for a user
-	List<OrderResponseDTO> getOrdersByUser(String userId);
+	List<OrderResponseDTO> getOrdersByUser();
 	
-	// Get all orders
+	// Cancel order (order owner / admin)
+	OrderResponseDTO cancelOrder(String orderId);
+	
+	// Get all orders (admin)
 	List<OrderResponseDTO> getAllOrders();
 	
-	// Get all orders with pagination
+	// Get all orders with pagination (admin)
 	Page<OrderResponseDTO> getAllOrders(Pageable pageable);
 	
-	// Update order status
+	// Update order status (admin)
 	OrderResponseDTO updateOrderStatus(String orderId, UpdateOrderStatusRequestDTO statusRequest);
-	
-	// Cancel order
-	OrderResponseDTO cancelOrder(String orderId);
 }

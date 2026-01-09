@@ -1,9 +1,9 @@
 package com.ecommerce.project.security;
 
-import java.util.Collections;
+//import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+//import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -24,15 +24,8 @@ public class CustomUserDetailsService implements UserDetailsService {
             .orElseThrow(() -> new UsernameNotFoundException(
                 "User not found with email: " + email
             ));
-        
-        // Create authority from user role
-        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().toString());
-        
-        // Convert user to Spring Security's user details
-        return new org.springframework.security.core.userdetails.User(
-            user.getEmail(),
-            user.getPassword(),
-            Collections.singletonList(authority)
-        );
+
+        // Wrap User into CustomUserDetails
+        return new CustomUserDetails(user);
 	}
 }

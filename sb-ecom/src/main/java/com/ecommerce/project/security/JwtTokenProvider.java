@@ -39,34 +39,22 @@ public class JwtTokenProvider {
 	}
 	
 	// Get email from JWT token
-	public String getEmailFromToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-            
-		return claims.getSubject();
+	public String getEmailFromToken(String token) throws ExpiredJwtException, MalformedJwtException {
+	    Claims claims = Jwts.parser()
+	            .verifyWith(getSigningKey())
+	            .build()
+	            .parseSignedClaims(token)
+	            .getPayload();
+	    return claims.getSubject();
 	}
+
 	
 	// Validate JWT token
-	public boolean validateToken(String token) {
-		try {
-			Jwts.parser()
-				.verifyWith(getSigningKey())
-				.build()
-				.parseSignedClaims(token);
-			return true;
-		} catch(MalformedJwtException e) {
-			 System.err.println("Invalid JWT token: " + e.getMessage());
-		} catch (ExpiredJwtException e) {
-			 System.err.println("Expired JWT token: " + e.getMessage());
-		} catch(UnsupportedJwtException e) {
-			 System.err.println("Unsupported JWT token: " + e.getMessage());
-		} catch(IllegalArgumentException e) {
-			 System.err.println("JWT claims string is empty: " + e.getMessage());
-		} 
-		return false;
+	public void validateTokenOrThrow(String token) throws ExpiredJwtException, MalformedJwtException {
+	    Jwts.parser()
+	        .verifyWith(getSigningKey())
+	        .build()
+	        .parseSignedClaims(token); // will throw ExpiredJwtException if expired
 	}
 	
 	// Get signing key from secret

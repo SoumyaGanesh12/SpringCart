@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.ecommerce.project.dto.AddToCartRequestDTO;
@@ -20,7 +21,7 @@ import com.ecommerce.project.model.User;
 import com.ecommerce.project.repository.CartItemRepository;
 import com.ecommerce.project.repository.CartRepository;
 import com.ecommerce.project.repository.ProductRepository;
-import com.ecommerce.project.repository.UserRepository;
+import com.ecommerce.project.security.CustomUserDetails;
 
 import jakarta.transaction.Transactional;
 
@@ -32,32 +33,40 @@ public class CartServiceImpl implements CartService {
 	
 	@Autowired
 	private CartItemRepository cartItemRepo;
-	
-	@Autowired
-	private UserRepository userRepo;
-	
+		
 	@Autowired
 	private ProductRepository productRepo;
 	
+	// Authenticated User
+	private User getAuthenticatedUser() {
+		Object principal = SecurityContextHolder.getContext()
+				.getAuthentication()
+				.getPrincipal();
+		
+		if(!(principal instanceof CustomUserDetails)) {
+			throw new BadRequestException("User not authenticated");
+		}
+		
+		User user = ((CustomUserDetails) principal).getUser();
+		
+		if(!user.getActive()) {
+			throw new BadRequestException("User account is inactive");
+		}
+		
+		return user;
+	}
+	
 	// Add product to cart
 	@Override
-	public CartResponseDTO addToCart(String userId, AddToCartRequestDTO addReqDto) {
+	public CartResponseDTO addToCart(AddToCartRequestDTO addReqDto) {
 	    // Validate quantity
 	    Integer quantity = addReqDto.getQuantity();
 	    
-	    if (quantity == null) {
-	        throw new BadRequestException("Quantity is required");
-	    }
-	    
-	    if (quantity <= 0) {
+	    if (quantity == null || quantity <= 0) {
 	        throw new BadRequestException("Quantity must be greater than 0");
 	    }
 
-		// Find user
-		User user = userRepo.findByUserId(userId)
-			.orElseThrow(() -> new ResourceNotFoundException(
-				"User with Id " + userId + " not found"
-			));
+	    User user = getAuthenticatedUser();
 		
 		// Find product
 		Product product = productRepo.findById(addReqDto.getProductId())
@@ -121,12 +130,9 @@ public class CartServiceImpl implements CartService {
 	
 	// Get user's cart
 	@Override
-    public CartResponseDTO getCart(String userId) {
+    public CartResponseDTO getCart() {
         // Find user
-        User user = userRepo.findByUserId(userId)
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "User with ID " + userId + " not found"
-            ));
+		User user = getAuthenticatedUser();
         
         // Get cart (or create empty one if doesn't exist)
         Cart cart = cartRepo.findByUserId(user.getId())
@@ -141,22 +147,24 @@ public class CartServiceImpl implements CartService {
 	
 	// Update cart item quantity
 	@Override
-    public CartResponseDTO updateCartItem(String userId, Long cartItemId, 
+    public CartResponseDTO updateCartItem(Long cartItemId, 
                                           UpdateCartItemRequestDTO updateRequest) {
 		
 //	    System.out.println("Quantity: " + updateRequest.getQuantity());
 //	    System.out.println("Quantity type: " + updateRequest.getQuantity().getClass());
 	    
+		// Validate quantity
+        if (updateRequest.getQuantity() <= 0) {
+            throw new BadRequestException("Quantity must be greater than 0");
+        }
+        		
         // Find user
-        User user = userRepo.findByUserId(userId)
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "User with ID " + userId + " not found"
-            ));
+        User user = getAuthenticatedUser();
         
         // Find cart
         Cart cart = cartRepo.findByUserId(user.getId())
             .orElseThrow(() -> new ResourceNotFoundException(
-                "Cart not found for user " + userId
+                "Cart not found"
             ));
         
         // Find cart item
@@ -168,11 +176,6 @@ public class CartServiceImpl implements CartService {
         // Verify cart item belongs to this user's cart
         if (!cartItem.getCart().getCartId().equals(cart.getCartId())) {
             throw new BadRequestException("Cart item does not belong to this user");
-        }
-        
-        // Validate quantity
-        if (updateRequest.getQuantity() <= 0) {
-            throw new BadRequestException("Quantity must be greater than 0");
         }
         
         // Check stock availability
@@ -196,17 +199,14 @@ public class CartServiceImpl implements CartService {
 	
     // Remove item from cart
 	@Override
-    public CartResponseDTO removeCartItem(String userId, Long cartItemId) {
+    public CartResponseDTO removeCartItem(Long cartItemId) {
         // Find user
-        User user = userRepo.findByUserId(userId)
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "User with ID " + userId + " not found"
-            ));
+		User user = getAuthenticatedUser();
         
         // Find cart
         Cart cart = cartRepo.findByUserId(user.getId())
             .orElseThrow(() -> new ResourceNotFoundException(
-                "Cart not found for user " + userId
+                "Cart not found"
             ));
         
         // Find cart item
@@ -233,17 +233,14 @@ public class CartServiceImpl implements CartService {
 	
     // Clear entire cart
 	@Override
-    public String clearCart(String userId) {
+    public String clearCart() {
         // Find user
-        User user = userRepo.findByUserId(userId)
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "User with ID " + userId + " not found"
-            ));
-        
+		User user = getAuthenticatedUser();
+		
         // Find cart
         Cart cart = cartRepo.findByUserId(user.getId())
             .orElseThrow(() -> new ResourceNotFoundException(
-                "Cart not found for user " + userId
+                "Cart not found"
             ));
         
         // Clear all items
