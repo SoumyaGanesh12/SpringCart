@@ -1,10 +1,6 @@
 package com.ecommerce.project.model;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-
-import com.ecommerce.project.model.Order.OrderStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

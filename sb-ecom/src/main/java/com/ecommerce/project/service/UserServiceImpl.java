@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.ecommerce.project.dto.UserRequestDTO;
 import com.ecommerce.project.dto.UserResponseDTO;
@@ -17,6 +18,9 @@ import com.ecommerce.project.repository.UserRepository;
 public class UserServiceImpl implements UserService{
 	@Autowired
 	private UserRepository userRepo;
+	
+	@Autowired
+	private PasswordEncoder passwordEncoder;
 	
 	// Register new user
 	@Override
@@ -88,7 +92,8 @@ public class UserServiceImpl implements UserService{
 		
 		// Only update password if provided
 		if(userReqDTO.getPassword() != null && !userReqDTO.getPassword().isEmpty()) {
-			user.setPassword(userReqDTO.getPassword());
+//			user.setPassword(userReqDTO.getPassword()); // Plain text
+			user.setPassword( passwordEncoder.encode(userReqDTO.getPassword()) ); // Encrypted
 		}
 		
 		// Save updated password
@@ -132,7 +137,8 @@ public class UserServiceImpl implements UserService{
 	private User convertToEntity(UserRequestDTO dto) {
 		User user = new User();
 		user.setEmail(dto.getEmail());
-		user.setPassword(dto.getPassword());
+		// user.setPassword(dto.getPassword()); // Plain text
+		user.setPassword( passwordEncoder.encode(dto.getPassword()) ); // Encrypted
 		user.setFirstName(dto.getFirstName());
 		user.setLastName(dto.getLastName());
 		user.setPhoneNumber(dto.getPhoneNumber());
