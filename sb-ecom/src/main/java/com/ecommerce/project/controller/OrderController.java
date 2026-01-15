@@ -23,6 +23,8 @@ import com.ecommerce.project.dto.PlaceOrderRequestDTO;
 import com.ecommerce.project.dto.UpdateOrderStatusRequestDTO;
 import com.ecommerce.project.service.OrderService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api")
 public class OrderController {
@@ -34,7 +36,7 @@ public class OrderController {
     // @PostMapping("/users/{userId}/orders/place") // Remove userId from URL and get user details from JWT token
     @PostMapping("/orders/place")
     public ResponseEntity<OrderResponseDTO> placeOrder(
-            @RequestBody PlaceOrderRequestDTO placeOrderRequest) {
+            @Valid @RequestBody PlaceOrderRequestDTO placeOrderRequest) {
         
         OrderResponseDTO order = orderService.placeOrder(placeOrderRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
@@ -90,7 +92,7 @@ public class OrderController {
     @PatchMapping("/admin/orders/{orderId}/status")
     public ResponseEntity<OrderResponseDTO> updateOrderStatus(
             @PathVariable String orderId,
-            @RequestBody UpdateOrderStatusRequestDTO statusRequest) {
+            @Valid @RequestBody UpdateOrderStatusRequestDTO statusRequest) {
         
         OrderResponseDTO order = orderService.updateOrderStatus(orderId, statusRequest);
         return ResponseEntity.ok(order);

@@ -22,6 +22,8 @@ import com.ecommerce.project.repository.UserRepository;
 import com.ecommerce.project.security.JwtTokenProvider;
 import com.ecommerce.project.service.UserService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -38,7 +40,7 @@ public class AuthController {
     private UserService userService;
 	
 	@PostMapping("/login")
-	public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginReq){
+	public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginReq){
 		try {
 			// Authenticate user
 			Authentication authentication = authMngr.authenticate(
@@ -75,7 +77,7 @@ public class AuthController {
 	// Register new user
 	@PostMapping("/register")
     public ResponseEntity<UserResponseDTO> registerUser(
-            @RequestBody UserRequestDTO userRequestDTO) {
+            @Valid @RequestBody UserRequestDTO userRequestDTO) {
         
         UserResponseDTO registeredUser = userService.registerUser(userRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(registeredUser);

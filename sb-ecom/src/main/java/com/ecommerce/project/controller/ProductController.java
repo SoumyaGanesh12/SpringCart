@@ -24,6 +24,8 @@ import com.ecommerce.project.dto.ProductRequestDTO;
 import com.ecommerce.project.dto.ProductResponseDTO;
 import com.ecommerce.project.service.ProductService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api")
 public class ProductController {
@@ -32,7 +34,7 @@ public class ProductController {
 	
 	// Create product
 	@PostMapping("/admin/products")
-	public ResponseEntity<ProductResponseDTO> createProduct(@RequestBody ProductRequestDTO prReqdto){
+	public ResponseEntity<ProductResponseDTO> createProduct(@Valid @RequestBody ProductRequestDTO prReqdto){
 		ProductResponseDTO createdProduct = proServ.createProduct(prReqdto);
 		return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
 	}
@@ -53,7 +55,7 @@ public class ProductController {
 	
 	// Update product
 	@PutMapping("/admin/products/{productId}")
-	public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long productId, @RequestBody ProductRequestDTO prReqdto){
+	public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long productId, @Valid @RequestBody ProductRequestDTO prReqdto){
 		ProductResponseDTO updatedProduct = proServ.updateProduct(productId, prReqdto);
 		return ResponseEntity.ok(updatedProduct);
 	}

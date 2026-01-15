@@ -17,6 +17,8 @@ import com.ecommerce.project.dto.UserRequestDTO;
 import com.ecommerce.project.dto.UserResponseDTO;
 import com.ecommerce.project.service.UserService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api")
 public class UserController {
@@ -39,7 +41,7 @@ public class UserController {
 	
 	// Update user profile
 	@PutMapping("/public/users/{userId}")
-	public ResponseEntity<UserResponseDTO> updateUser(@PathVariable String userId, @RequestBody UserRequestDTO dto){
+	public ResponseEntity<UserResponseDTO> updateUser(@PathVariable String userId, @Valid @RequestBody UserRequestDTO dto){
 		UserResponseDTO updatedUser = userService.updateUser(userId, dto);
 		return ResponseEntity.ok(updatedUser);
 	}

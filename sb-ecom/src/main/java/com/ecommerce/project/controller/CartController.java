@@ -19,6 +19,8 @@ import com.ecommerce.project.dto.UpdateCartItemRequestDTO;
 import com.ecommerce.project.security.CustomUserDetails;
 import com.ecommerce.project.service.CartService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api")
 public class CartController {
@@ -29,7 +31,7 @@ public class CartController {
 	// @PostMapping("/users/{userId}/cart/add") // Remove userId from URL and get user details from JWT token
 	// public ResponseEntity<CartResponseDTO> addToCart(@PathVariable String userId, @RequestBody AddToCartRequestDTO addToCartReq){
 	@PostMapping("/cart/add")
-	public ResponseEntity<CartResponseDTO> addToCart(@RequestBody AddToCartRequestDTO addToCartReq){
+	public ResponseEntity<CartResponseDTO> addToCart(@Valid @RequestBody AddToCartRequestDTO addToCartReq){
 		CartResponseDTO cart = cartServ.addToCart(addToCartReq);
 		return ResponseEntity.status(HttpStatus.CREATED).body(cart);
 	}
@@ -45,7 +47,7 @@ public class CartController {
 	// Update cart item quantity
 	// @PutMapping("/users/{userId}/cart/items/{cartItemId}")
 	@PutMapping("/cart/items/{cartItemId}")
-	public ResponseEntity<CartResponseDTO> updateCartItem(@PathVariable Long cartItemId, @RequestBody UpdateCartItemRequestDTO updateRequest) {
+	public ResponseEntity<CartResponseDTO> updateCartItem(@PathVariable Long cartItemId,@Valid @RequestBody UpdateCartItemRequestDTO updateRequest) {
 		CartResponseDTO cart = cartServ.updateCartItem(cartItemId, updateRequest);
 		return ResponseEntity.ok(cart);
 	}

@@ -20,6 +20,8 @@ import com.ecommerce.project.dto.CategoryRequestDTO;
 import com.ecommerce.project.dto.CategoryResponseDTO;
 import com.ecommerce.project.service.CategoryService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api")
 public class CategoryController {	
@@ -43,8 +45,8 @@ public class CategoryController {
 	
 	// Create category
 	@PostMapping("/public/categories")
-	public ResponseEntity<CategoryResponseDTO> createCategory(@RequestBody CategoryRequestDTO categoryRequestDTO ) {
-		
+	// public ResponseEntity<CategoryResponseDTO> createCategory(@RequestBody CategoryRequestDTO categoryRequestDTO ) {
+	public ResponseEntity<CategoryResponseDTO> createCategory(@Valid @RequestBody CategoryRequestDTO categoryRequestDTO ) {	
 		CategoryResponseDTO createdCategory = catSer.createCategory(categoryRequestDTO);
 		return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
 	}
@@ -56,7 +58,7 @@ public class CategoryController {
 	}
 	
 	@PutMapping("/public/categories/{categoryId}")
-	public ResponseEntity<CategoryResponseDTO> updateCategory(@RequestBody CategoryRequestDTO categoryRequestDTO, @PathVariable Long categoryId){
+	public ResponseEntity<CategoryResponseDTO> updateCategory(@Valid @RequestBody CategoryRequestDTO categoryRequestDTO, @PathVariable Long categoryId){
 		CategoryResponseDTO updatedCategory = catSer.updateCategory(categoryRequestDTO, categoryId);
 		return ResponseEntity.ok(updatedCategory);
 	}

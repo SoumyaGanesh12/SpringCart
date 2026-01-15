@@ -1,27 +1,73 @@
 # SpringCart
 
-A RESTful e-commerce backend application built with Spring Boot.
+A production-ready e-commerce backend platform built with Spring Boot, featuring JWT authentication, complex JPA relationships, and transactional workflows for secure and scalable online commerce operations.
 
-## Tech Stack
+---
 
-- **Java 17+**
-- **Spring Boot 3.x**
-- **Spring Data JPA**
-- **Hibernate**
-- **H2 Database**
-- **Maven**
-- **Lombok**
+## Description
+
+SpringCart is a full-featured RESTful e-commerce API that manages the complete customer lifecycle from product browsing to order fulfillment. The platform provides secure user authentication, real-time inventory management, and transactional order processing with automatic stock control.
+
+Built with Spring Boot and Spring Security, the application features JWT-based stateless authentication, role-based authorization for customer and administrative operations, and comprehensive error handling. The backend handles complex entity relationships across seven database tables, processes paginated product catalogs, and ensures data consistency through transactional workflows during order placement and cancellation.
+
+The system supports multiple concurrent users, maintains price snapshots for order integrity, and implements soft-delete patterns for data preservation. All endpoints follow RESTful principles with proper HTTP methods, status codes, and resource-oriented URL structures.
+
+---
 
 ## Features
 
-- Category Management (CRUD operations)
-- Product Management with category relationships
-- Search and filter products
-- Pagination and sorting
-- Global exception handling
-- DTO pattern implementation
+### Core Functionality
+- Category and Product Management with hierarchical relationships
+- User registration and authentication with JWT tokens
+- Shopping cart with real-time total calculation and stock validation
+- Order management with transactional workflows and status tracking
+- Advanced product search with case-insensitive matching
+- Pagination and sorting with customizable parameters
+- Stock management with automatic deduction and restoration
 
-## Getting Started
+### Security
+- JWT-based stateless authentication (1-hour token expiration)
+- BCrypt password encryption
+- Role-based access control (CUSTOMER and ADMIN roles)
+- Protected endpoints with fine-grained authorization
+- Secure password storage and validation
+
+### Technical Implementation
+- DTO pattern for clean API contracts
+- Global exception handling with standardized error responses
+- Bean Validation for comprehensive input validation
+- Transaction management ensuring ACID compliance
+- Custom ID generation (sequential for users, UUID for orders)
+- Soft delete for user deactivation
+- Price snapshots for historical accuracy in orders
+
+---
+
+## Tech Stack
+
+**Backend Framework**
+- Spring Boot 3.x
+- Spring Data JPA
+- Spring Security
+- Spring Web
+
+**Database & ORM**
+- H2 Database (Development)
+- Hibernate ORM
+
+**Security**
+- JSON Web Tokens (JWT)
+- BCrypt Password Encryption
+
+**Build & Tools**
+- Java 17
+- Maven
+- Lombok
+- Jakarta Bean Validation
+
+---
+
+## Setup Instructions
 
 ### Prerequisites
 - Java 17 or higher
@@ -35,45 +81,125 @@ git clone https://github.com/SoumyaGanesh12/SpringCart.git
 cd SpringCart
 ```
 
-2. Run the application
+2. Build the project
+```bash
+mvn clean install
+```
+
+3. Run the application
 ```bash
 mvn spring-boot:run
 ```
 
-The application will start on `http://localhost:8080`
+The application starts on `http://localhost:8080`
+
+### H2 Database Console (Optional)
+- URL: `http://localhost:8080/h2-console`
+- JDBC URL: `jdbc:h2:file:./data/springcart`
+- Username: `sa`
+- Password: (leave empty)
+
+### Configuration
+Update `application.properties` for production with MySQL/PostgreSQL:
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/springcart
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+spring.jpa.hibernate.ddl-auto=validate
+```
+
+---
 
 ## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login and receive JWT token
 
 ### Categories
 - `GET /api/public/categories` - Get all categories
 - `POST /api/public/categories` - Create category
 - `PUT /api/public/categories/{id}` - Update category
-- `DELETE /api/admin/categories/{id}` - Delete category
+- `DELETE /api/admin/categories/{id}` - Delete category (Admin only)
 
 ### Products
 - `GET /api/public/products` - Get all products
 - `GET /api/public/products/{id}` - Get product by ID
-- `POST /api/admin/products` - Create product
-- `PUT /api/admin/products/{id}` - Update product
-- `DELETE /api/admin/products/{id}` - Delete product
 - `GET /api/public/products/search?keyword={keyword}` - Search products
-- `GET /api/public/products/page?page=0&size=10` - Get products with pagination
+- `GET /api/public/categories/{categoryId}/products` - Get products by category
+- `GET /api/public/products/page?page={page}&size={size}&sortBy={field}&sortDir={direction}` - Paginated products
+- `POST /api/admin/products` - Create product (Admin only)
+- `PUT /api/admin/products/{id}` - Update product (Admin only)
+- `DELETE /api/admin/products/{id}` - Delete product (Admin only)
+
+### Users
+- `GET /api/admin/users` - Get all users (Admin only)
+- `GET /api/public/users/{userId}` - Get user profile
+- `PUT /api/users/profile` - Update current user's profile
+- `DELETE /api/admin/users/{userId}` - Deactivate user (Admin only)
+- `PATCH /api/admin/users/{userId}/toggle-status` - Toggle user status (Admin only)
+
+### Shopping Cart
+- `GET /api/cart` - Get current user's cart
+- `POST /api/cart/add` - Add product to cart
+- `PUT /api/cart/items/{itemId}` - Update item quantity
+- `DELETE /api/cart/items/{itemId}` - Remove item from cart
+- `DELETE /api/cart` - Clear cart
+
+### Orders
+- `POST /api/orders/place` - Place order from cart
+- `GET /api/orders/{orderId}` - Get order by ID
+- `GET /api/orders` - Get current user's order history
+- `PATCH /api/orders/{orderId}/cancel` - Cancel order
+- `GET /api/admin/orders` - Get all orders (Admin only)
+- `GET /api/admin/orders/page?page={page}&size={size}` - Paginated orders (Admin only)
+- `PATCH /api/admin/orders/{orderId}/status` - Update order status (Admin only)
+
+---
 
 ## Project Structure
 
 ```
 src/main/java/com/ecommerce/project/
-├── controller/     # REST Controllers
-├── dto/            # Data Transfer Objects
-├── exception/      # Exception handling
-├── model/          # JPA Entities
-├── repository/     # Data repositories
-└── service/        # Business logic
+├── controller/        # REST API endpoints (6 controllers)
+├── dto/               # Data Transfer Objects (16 DTOs)
+├── exception/         # Custom exceptions and global handler
+├── model/             # JPA entities (7 entities)
+├── repository/        # Data access layer (7 repositories)
+├── security/          # JWT and Spring Security configuration
+└── service/           # Business logic layer (8 services)
 ```
 
-## Status
+---
 
-**Work in Progress** - This project is under active development.
+## Key Technical Implementations
+
+### Authentication & Security
+- JWT-based stateless authentication with 1-hour token expiration
+- BCrypt password hashing with salt for secure storage
+- Role-based access control separating CUSTOMER and ADMIN operations
+- Custom JWT filter validating tokens on every request
+
+### Database & JPA
+- Complex entity relationships: OneToOne (User-Cart), OneToMany (Category-Products, Cart-CartItems, Order-OrderItems), ManyToOne (Product-Category)
+- Lazy loading fetch strategies for optimized performance
+- Custom repository query methods for search and filtering
+- Pagination using Spring Data Pageable interface
+
+### Business Logic
+- Transactional order placement ensuring atomicity across order creation, stock deduction, and cart clearing
+- Stock management with real-time validation and automatic restoration on order cancellation
+- Price snapshots preserving historical pricing in cart and order items
+- Order lifecycle management with status transitions and business rule enforcement
+
+### API Design
+- DTO pattern separating API contracts from database entities
+- Global exception handling with @RestControllerAdvice
+- Bean Validation for declarative input constraints
+- RESTful design with proper HTTP methods and status codes
+- User identity extraction from JWT tokens for secure operations
+
+---
 
 ## License
 
