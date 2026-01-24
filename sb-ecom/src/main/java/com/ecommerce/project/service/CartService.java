@@ -7,17 +7,18 @@ import com.ecommerce.project.dto.UpdateCartItemRequestDTO;
 public interface CartService {
 
 	// Add product to cart
-	CartResponseDTO addToCart(AddToCartRequestDTO addReqDto);
+	CartResponseDTO addToCart(String userId, AddToCartRequestDTO addReqDto);
 	
 	// Get user's cart
-	CartResponseDTO getCart();
+	CartResponseDTO getCart(String userId);
 	
 	// Update cart item quantity
-	CartResponseDTO updateCartItem(Long cartItemId, UpdateCartItemRequestDTO updateRequest);
+	CartResponseDTO updateCartItem(String userId, Long cartItemId, UpdateCartItemRequestDTO updateRequest);
     
     // Remove item from cart
-    CartResponseDTO removeCartItem(Long cartItemId);
+    CartResponseDTO removeCartItem(String userId, Long cartItemId);
     
     // Clear entire cart
-    String clearCart();
+    String clearCart(String userId);
 }
+

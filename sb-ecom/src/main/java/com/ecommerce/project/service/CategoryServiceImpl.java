@@ -55,9 +55,9 @@ public class CategoryServiceImpl implements CategoryService{
 //				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found!"));  
 		
 		Category category = catRepo.findById(categoryId)
-				.orElseThrow(() -> new ResourceNotFoundException("Category with Id" + categoryId + " not found!"));
+				.orElseThrow(() -> new ResourceNotFoundException("Category with Id " + categoryId + " not found!"));
 		catRepo.delete(category);
-		return "Category with categoryId: " + categoryId + " deleted successfully!";
+		return "Category with Id: " + categoryId + " deleted successfully!";
 	}
 
 	@Override

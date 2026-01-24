@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.ecommerce.project.dto.AddToCartRequestDTO;
@@ -21,7 +20,7 @@ import com.ecommerce.project.model.User;
 import com.ecommerce.project.repository.CartItemRepository;
 import com.ecommerce.project.repository.CartRepository;
 import com.ecommerce.project.repository.ProductRepository;
-import com.ecommerce.project.security.CustomUserDetails;
+import com.ecommerce.project.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -37,28 +36,31 @@ public class CartServiceImpl implements CartService {
 	@Autowired
 	private ProductRepository productRepo;
 	
+	@Autowired
+	private UserRepository userRepo;
+	
 	// Authenticated User
-	private User getAuthenticatedUser() {
-		Object principal = SecurityContextHolder.getContext()
-				.getAuthentication()
-				.getPrincipal();
-		
-		if(!(principal instanceof CustomUserDetails)) {
-			throw new BadRequestException("User not authenticated");
-		}
-		
-		User user = ((CustomUserDetails) principal).getUser();
-		
-		if(!user.getActive()) {
-			throw new BadRequestException("User account is inactive");
-		}
-		
-		return user;
-	}
+//	private User getAuthenticatedUser() {
+//		Object principal = SecurityContextHolder.getContext()
+//				.getAuthentication()
+//				.getPrincipal();
+//		
+//		if(!(principal instanceof CustomUserDetails)) {
+//			throw new BadRequestException("User not authenticated");
+//		}
+//		
+//		User user = ((CustomUserDetails) principal).getUser();
+//		
+//		if(!user.getActive()) {
+//			throw new BadRequestException("User account is inactive");
+//		}
+//		
+//		return user;
+//	}
 	
 	// Add product to cart
 	@Override
-	public CartResponseDTO addToCart(AddToCartRequestDTO addReqDto) {
+	public CartResponseDTO addToCart(String userId, AddToCartRequestDTO addReqDto) {
 	    // Validate quantity
 	    Integer quantity = addReqDto.getQuantity();
 	    
@@ -66,7 +68,12 @@ public class CartServiceImpl implements CartService {
 	        throw new BadRequestException("Quantity must be greater than 0");
 	    }
 
-	    User user = getAuthenticatedUser();
+	    User user = userRepo.findByUserId(userId)
+	    		.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+	    
+	    if(!user.getActive()) {
+	    	throw new BadRequestException("User account is inactive");
+	    }
 		
 		// Find product
 		Product product = productRepo.findById(addReqDto.getProductId())
@@ -130,9 +137,10 @@ public class CartServiceImpl implements CartService {
 	
 	// Get user's cart
 	@Override
-    public CartResponseDTO getCart() {
+    public CartResponseDTO getCart(String userId) {
         // Find user
-		User user = getAuthenticatedUser();
+		User user = userRepo.findByUserId(userId)
+	            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         // Get cart (or create empty one if doesn't exist)
         Cart cart = cartRepo.findByUserId(user.getId())
@@ -147,7 +155,7 @@ public class CartServiceImpl implements CartService {
 	
 	// Update cart item quantity
 	@Override
-    public CartResponseDTO updateCartItem(Long cartItemId, 
+    public CartResponseDTO updateCartItem(String userId, Long cartItemId, 
                                           UpdateCartItemRequestDTO updateRequest) {
 		
 //	    System.out.println("Quantity: " + updateRequest.getQuantity());
@@ -159,7 +167,8 @@ public class CartServiceImpl implements CartService {
         }
         		
         // Find user
-        User user = getAuthenticatedUser();
+        User user = userRepo.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         // Find cart
         Cart cart = cartRepo.findByUserId(user.getId())
@@ -199,9 +208,10 @@ public class CartServiceImpl implements CartService {
 	
     // Remove item from cart
 	@Override
-    public CartResponseDTO removeCartItem(Long cartItemId) {
+    public CartResponseDTO removeCartItem(String userId, Long cartItemId) {
         // Find user
-		User user = getAuthenticatedUser();
+		User user = userRepo.findByUserId(userId)
+	            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         // Find cart
         Cart cart = cartRepo.findByUserId(user.getId())
@@ -233,9 +243,10 @@ public class CartServiceImpl implements CartService {
 	
     // Clear entire cart
 	@Override
-    public String clearCart() {
+    public String clearCart(String userId) {
         // Find user
-		User user = getAuthenticatedUser();
+		User user = userRepo.findByUserId(userId)
+	            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 		
         // Find cart
         Cart cart = cartRepo.findByUserId(user.getId())

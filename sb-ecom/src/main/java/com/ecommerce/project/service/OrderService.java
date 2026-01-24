@@ -11,16 +11,16 @@ import com.ecommerce.project.dto.UpdateOrderStatusRequestDTO;
 
 public interface OrderService {
 	// Place order from cart (logged-in user)
-	OrderResponseDTO placeOrder(PlaceOrderRequestDTO placeOrderReqdto);
+	OrderResponseDTO placeOrder(String userId, PlaceOrderRequestDTO placeOrderReqdto);
 	
 	// Get order by orderId
-	OrderResponseDTO getOrderById(String orderId);
+	OrderResponseDTO getOrderById(String userId, String orderId);
 	
 	// Get all orders for a user
-	List<OrderResponseDTO> getOrdersByUser();
+	List<OrderResponseDTO> getOrdersByUser(String userId);
 	
 	// Cancel order (order owner / admin)
-	OrderResponseDTO cancelOrder(String orderId);
+	OrderResponseDTO cancelOrder(String userId, String orderId);
 	
 	// Get all orders (admin)
 	List<OrderResponseDTO> getAllOrders();

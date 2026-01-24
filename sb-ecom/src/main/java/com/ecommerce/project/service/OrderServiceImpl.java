@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.ecommerce.project.dto.OrderItemDTO;
@@ -25,7 +24,7 @@ import com.ecommerce.project.model.User;
 import com.ecommerce.project.repository.CartRepository;
 import com.ecommerce.project.repository.OrderRepository;
 import com.ecommerce.project.repository.ProductRepository;
-import com.ecommerce.project.security.CustomUserDetails;
+import com.ecommerce.project.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -42,27 +41,31 @@ public class OrderServiceImpl implements OrderService {
 	@Autowired
 	private ProductRepository productRepo;
 	
+	@Autowired
+    private UserRepository userRepo;
+	
 	// Get authenticated user
-	private User getAuthenticatedUser() {
-		Object principal = SecurityContextHolder.getContext()
-				.getAuthentication()
-				.getPrincipal();
-		
-		if(!(principal instanceof CustomUserDetails)) {
-			throw new BadRequestException("User not authenticated");
-		}
-		
-		User user = ((CustomUserDetails) principal).getUser();
-		if(!user.getActive()) throw new BadRequestException("User account is inactive");
-		
-		return user;
-	}
+//	private User getAuthenticatedUser() {
+//		Object principal = SecurityContextHolder.getContext()
+//				.getAuthentication()
+//				.getPrincipal();
+//		
+//		if(!(principal instanceof CustomUserDetails)) {
+//			throw new BadRequestException("User not authenticated");
+//		}
+//		
+//		User user = ((CustomUserDetails) principal).getUser();
+//		if(!user.getActive()) throw new BadRequestException("User account is inactive");
+//		
+//		return user;
+//	}
 	
 	// Place order from cart
 	@Override
-	public OrderResponseDTO placeOrder(PlaceOrderRequestDTO placeOrderReqdto) {
+	public OrderResponseDTO placeOrder(String userId, PlaceOrderRequestDTO placeOrderReqdto) {
 		// Get authenticated user
-		User user = getAuthenticatedUser();
+		User user = userRepo.findByUserId(userId)
+	         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 		
 		// FInd user's cart
 		Cart cart = cartRepo.findByUserId(user.getId())
@@ -129,9 +132,11 @@ public class OrderServiceImpl implements OrderService {
 	
 	// Get order by orderId
 	@Override
-	public OrderResponseDTO getOrderById(String orderId) {
+	public OrderResponseDTO getOrderById(String userId, String orderId) {
 		// Get authenticated user
-		User user = getAuthenticatedUser();
+		User user = userRepo.findByUserId(userId)
+		        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+		    
 		
 		Order order = orderRepo.findByOrderId(orderId)
 				.orElseThrow(() -> new ResourceNotFoundException(
@@ -150,10 +155,11 @@ public class OrderServiceImpl implements OrderService {
 	}
 	
 	// Get all orders for a user
-	public List<OrderResponseDTO> getOrdersByUser(){
+	public List<OrderResponseDTO> getOrdersByUser(String userId){
 		// Get authenticated user
-		User user = getAuthenticatedUser();
-		
+		User user = userRepo.findByUserId(userId)
+	            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+		        
 		List<Order> orders = orderRepo.findByUserId(user.getId());
 		
 		return orders.stream()
@@ -163,9 +169,10 @@ public class OrderServiceImpl implements OrderService {
 	
 	// Cancel order by owner/ admin
 	@Override
-	public OrderResponseDTO cancelOrder(String orderId) {
+	public OrderResponseDTO cancelOrder(String userId, String orderId) {
 		// Get authenticated user
-		User user = getAuthenticatedUser();
+		User user = userRepo.findByUserId(userId)
+		        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 		
 		Order order = orderRepo.findByOrderId(orderId)
 				.orElseThrow(() -> new ResourceNotFoundException(
