@@ -201,6 +201,52 @@ src/main/java/com/ecommerce/project/
 
 ---
 
+## Testing
+
+Comprehensive unit test suite for the service layer using JUnit 5 and Mockito, achieving high code coverage across business logic components.
+
+### Test Statistics
+- **Total Tests:** 56 unit tests
+- **Service Layer Coverage:** 87%
+- **Overall Project Coverage:** 60%
+- **Testing Framework:** JUnit 5
+- **Mocking Framework:** Mockito
+
+### Test Coverage by Service
+- **CategoryServiceImpl:** 6 tests - CRUD operations, duplicate validation, error scenarios
+- **ProductServiceImpl:** 13 tests - Product management, pagination, search, category relationships
+- **UserServiceImpl:** 9 tests - Registration, authentication, profile management, soft delete
+- **CartServiceImpl:** 12 tests - Cart operations, stock validation, duplicate product handling
+- **OrderServiceImpl:** 16 tests - Order placement, cancellation, stock restoration, permission checks
+
+### Testing Approach
+- Service layer tested in isolation with mocked repository dependencies
+- Arrange-Act-Assert pattern for clear and maintainable test structure
+- Comprehensive coverage of happy paths and error scenarios
+- Business rule validation including stock management and order lifecycle
+- Transaction behavior and data integrity verification
+
+### Running Tests
+```bash
+# Run all tests
+mvn test
+
+# Run tests with coverage report
+mvn clean test
+
+# View detailed coverage report
+open target/site/jacoco/index.html
+```
+
+### Code Coverage Report
+JaCoCo generates detailed HTML reports showing:
+- Line and branch coverage by package and class
+- Visual code highlighting (green: covered, red: not covered)
+- Method-level coverage metrics
+- Overall project statistics
+
+---
+
 ## License
 
 This project is licensed under the MIT License.
