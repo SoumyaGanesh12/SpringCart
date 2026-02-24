@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -15,7 +16,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name="cart_items")
+@Table(name="cart_items", indexes = {
+		@Index(name="idx_cartitem_cart", columnList="cart_id"),
+		@Index(name="idx_cartitem_product", columnList="product_id")
+})
 @Data
 @NoArgsConstructor
 public class CartItem {
