@@ -52,7 +52,8 @@ The system supports multiple concurrent users, maintains price snapshots for ord
 - Spring Web
 
 **Database & ORM**
-- H2 Database (Development)
+- MySQL 8.x (Production)
+- H2 Database (Testing)
 - Hibernate ORM
 
 **Security**
@@ -72,6 +73,19 @@ The system supports multiple concurrent users, maintains price snapshots for ord
 ### Prerequisites
 - Java 17 or higher
 - Maven 3.6+
+- MySQL 8.x
+
+### Database Setup
+
+1. Install MySQL and start the service
+
+2. Create database and user
+```sql
+CREATE DATABASE springcart;
+CREATE USER 'springcart_user'@'localhost' IDENTIFIED BY 'springcart123';
+GRANT ALL PRIVILEGES ON springcart.* TO 'springcart_user'@'localhost';
+FLUSH PRIVILEGES;
+```
 
 ### Installation
 
@@ -100,13 +114,54 @@ The application starts on `http://localhost:8080`
 - Password: (leave empty)
 
 ### Configuration
-Update `application.properties` for production with MySQL/PostgreSQL:
+**Production (MySQL)** - `src/main/resources/application.properties`
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/springcart
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-spring.jpa.hibernate.ddl-auto=validate
+spring.datasource.url=jdbc:mysql://localhost:3306/springcart?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+spring.datasource.username=springcart_user
+spring.datasource.password=springcart123
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
 ```
+
+**Testing (H2)** - `src/test/resources/application.properties`
+```properties
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.username=sa
+spring.datasource.password=
+spring.datasource.driver-class-name=org.h2.Driver
+
+spring.jpa.hibernate.ddl-auto=create-drop
+```
+
+---
+
+## Database Schema
+
+### Entity Relationships
+```
+Category (1) ←——→ (Many) Product
+User (1) ←——→ (1) Cart
+User (1) ←——→ (Many) Order
+Cart (1) ←——→ (Many) CartItem
+CartItem (Many) ←——→ (1) Product
+Order (1) ←——→ (Many) OrderItem
+OrderItem (Many) ←——→ (1) Product
+```
+
+### Database Indexes
+Indexes are configured for optimized query performance:
+
+| Table | Indexed Columns | Purpose |
+|-------|-----------------|---------|
+| products | product_name, category_id | Product search and category filtering |
+| users | email, user_id | Login lookup and API queries |
+| orders | user_id, order_id | Order history and tracking |
+| carts | user_id | Cart retrieval |
+| cart_items | cart_id, product_id | Cart item lookups |
+| order_items | order_id, product_id | Order item retrieval |
 
 ---
 
@@ -181,10 +236,17 @@ src/main/java/com/ecommerce/project/
 - Custom JWT filter validating tokens on every request
 
 ### Database & JPA
-- Complex entity relationships: OneToOne (User-Cart), OneToMany (Category-Products, Cart-CartItems, Order-OrderItems), ManyToOne (Product-Category)
+- MySQL for production with optimized indexing strategy
+- H2 in-memory database for fast, isolated testing
+- Complex entity relationships: OneToOne, OneToMany, ManyToOne
 - Lazy loading fetch strategies for optimized performance
 - Custom repository query methods for search and filtering
 - Pagination using Spring Data Pageable interface
+
+### Performance Optimization
+- B-Tree indexes on frequently queried columns (emails, foreign keys, search fields)
+- Query optimization through proper index selection
+- Lazy loading preventing N+1 query problems
 
 ### Business Logic
 - Transactional order placement ensuring atomicity across order creation, stock deduction, and cart clearing
@@ -225,6 +287,7 @@ Comprehensive unit test suite for the service layer using JUnit 5 and Mockito, a
 - Comprehensive coverage of happy paths and error scenarios
 - Business rule validation including stock management and order lifecycle
 - Transaction behavior and data integrity verification
+- H2 in-memory database for integration tests ensuring test isolation
 
 ### Running Tests
 ```bash
