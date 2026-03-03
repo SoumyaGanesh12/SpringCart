@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 //import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 //import org.springframework.web.server.ResponseStatusException;
@@ -20,7 +22,9 @@ public class CategoryServiceImpl implements CategoryService{
 	@Autowired
 	private CategoryRepository catRepo;
 	
+	// Cache all categories
 	@Override
+	@Cacheable(value = "allCategories")
 	public List<CategoryResponseDTO> getAllCategories(){
 		List<Category> categories = catRepo.findAll();
 		
@@ -30,7 +34,9 @@ public class CategoryServiceImpl implements CategoryService{
 				.collect(Collectors.toList());
 	}
 	
+	// Clear cache when category created
 	@Override
+	@CacheEvict(value="allCategories", allEntries=true)
 	public CategoryResponseDTO createCategory(CategoryRequestDTO categoryRequestDTO) {
 		// Check if category name already exists
 		if(catRepo.findByCategoryName(categoryRequestDTO.getCategoryName()).isPresent()) {
@@ -49,7 +55,9 @@ public class CategoryServiceImpl implements CategoryService{
 		return convertToResponseDTO(savedCategory);
 	}
 	
+	// Clean cache when category deleted
 	@Override
+	@CacheEvict(value="allCategories", allEntries=true)
 	public String deleteCategory(Long categoryId) {	
 //		Category category = catRepo.findById(categoryId)
 //				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found!"));  
@@ -60,7 +68,9 @@ public class CategoryServiceImpl implements CategoryService{
 		return "Category with Id: " + categoryId + " deleted successfully!";
 	}
 
+	// Clear cache when category updated
 	@Override
+	@CacheEvict(value="allCategories", allEntries=true)
 	public CategoryResponseDTO updateCategory(CategoryRequestDTO categoryRequestDTO, Long categoryId) {
 		// Find existing category
 	    Category existingCategory = catRepo.findById(categoryId)

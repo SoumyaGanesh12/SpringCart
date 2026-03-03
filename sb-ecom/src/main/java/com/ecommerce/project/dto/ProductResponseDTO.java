@@ -1,5 +1,6 @@
 package com.ecommerce.project.dto;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -10,7 +11,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductResponseDTO {
+public class ProductResponseDTO implements Serializable {
+	
+	private static final long serialVersionUID = 1L;
+	
 	private Long productId;
 	private String productName;
 	private String description;

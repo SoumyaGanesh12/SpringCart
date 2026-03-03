@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,7 +26,9 @@ public class ProductServiceImpl implements ProductService {
 	@Autowired
 	private CategoryRepository categoryRepo;
 	
+	// Clean cache when new product is created
 	@Override
+	@CacheEvict(value= {"products", "productsByCategory", "allProducts"}, allEntries = true)
 	public ProductResponseDTO createProduct(ProductRequestDTO productRequestDTO) {
 		// Find category by Id
 		Category category = categoryRepo.findById(productRequestDTO.getCategoryId())
@@ -42,7 +46,9 @@ public class ProductServiceImpl implements ProductService {
 		return convertToResponseDTO(savedProduct);
 	}
 	
+	// Cache all products
 	@Override
+	@Cacheable(value = "allProducts")
 	public List<ProductResponseDTO> getAllProducts(){
 		List<Product> products = productRepo.findAll();
 		return products.stream()
@@ -50,7 +56,9 @@ public class ProductServiceImpl implements ProductService {
 			.collect(Collectors.toList());
 	}
 	
+	// Cache single product
 	@Override
+	@Cacheable(value="products", key="#productId")
 	public ProductResponseDTO getProductById(Long productId) {
 		Product product = productRepo.findById(productId)
 			.orElseThrow(() -> new ResourceNotFoundException(
@@ -59,7 +67,9 @@ public class ProductServiceImpl implements ProductService {
 		return convertToResponseDTO(product);
 	}
 	
+	// Clear cache when product is updated
 	@Override
+	@CacheEvict(value= {"products", "productsByCategory", "allProducts"}, allEntries=true)
 	public ProductResponseDTO updateProduct(Long productId, ProductRequestDTO productRequestDTO) {
 		// Find existing product
 		Product existingProduct = productRepo.findById(productId)
@@ -88,7 +98,9 @@ public class ProductServiceImpl implements ProductService {
 		return convertToResponseDTO(updatedProduct);
 	}
 	
+	// Clear cache when product is deleted
 	@Override
+	@CacheEvict(value= {"allProducts, products, productsByCategory"}, allEntries = true)
 	public String deleteProduct(Long productId) {
 		Product product = productRepo.findById(productId)
 			.orElseThrow(() -> new ResourceNotFoundException(
@@ -99,7 +111,9 @@ public class ProductServiceImpl implements ProductService {
 		return "Product with Id " + productId + " deleted successfully";
 	}
 	
+	// Cache products by category
 	@Override
+	@Cacheable(value = "productsByCategory", key = "#categoryId")
 	public List<ProductResponseDTO> getProductsByCategory(Long categoryId){
 		// Verify category exists
 		categoryRepo.findById(categoryId)
