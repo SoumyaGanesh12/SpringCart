@@ -60,6 +60,10 @@ The system supports multiple concurrent users, maintains price snapshots for ord
 - JSON Web Tokens (JWT)
 - BCrypt Password Encryption
 
+**Caching**
+- Redis (Memurai for Windows)
+- Spring Cache Abstraction
+
 **Build & Tools**
 - Java 17
 - Maven
@@ -74,6 +78,7 @@ The system supports multiple concurrent users, maintains price snapshots for ord
 - Java 17 or higher
 - Maven 3.6+
 - MySQL 8.x
+- Redis (or Memurai for Windows)
 
 ### Database Setup
 
@@ -86,6 +91,12 @@ CREATE USER 'springcart_user'@'localhost' IDENTIFIED BY 'springcart123';
 GRANT ALL PRIVILEGES ON springcart.* TO 'springcart_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
+
+### Redis Setup (Windows)
+
+1. Download Memurai from https://www.memurai.com/get-memurai
+2. Install and it runs automatically as Windows service
+3. Verify: `memurai-cli ping` → should return `PONG`
 
 ### Installation
 
@@ -135,7 +146,12 @@ spring.datasource.driver-class-name=org.h2.Driver
 
 spring.jpa.hibernate.ddl-auto=create-drop
 ```
-
+**Redis** - `src/main/resources/application.properties`
+```properties
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+spring.cache.type=redis
+```
 ---
 
 ## Database Schema
@@ -162,6 +178,26 @@ Indexes are configured for optimized query performance:
 | carts | user_id | Cart retrieval |
 | cart_items | cart_id, product_id | Cart item lookups |
 | order_items | order_id, product_id | Order item retrieval |
+
+### Caching
+
+Redis caching is implemented to reduce database load for frequently accessed data:
+
+| Cache Name | Method | TTL |
+|------------|--------|-----|
+| allCategories | getAllCategories() | 10 min |
+| categories | getCategoryById() | 10 min |
+| allProducts | getAllProducts() | 10 min |
+| products | getProductById() | 10 min |
+| productsByCategory | getProductsByCategory() | 10 min |
+
+Cache invalidation is handled automatically via `@CacheEvict` when data is created, updated, or deleted.
+
+**Not Cached (by design):**
+- Paginated results (too many key variations)
+- Search results (infinite keyword combinations)
+- Shopping cart (user-specific, frequently changing)
+- Stock quantities (requires real-time accuracy)
 
 ---
 
@@ -216,6 +252,7 @@ Indexes are configured for optimized query performance:
 
 ```
 src/main/java/com/ecommerce/project/
+├── config/            # Configuration classes (Redis)
 ├── controller/        # REST API endpoints (6 controllers)
 ├── dto/               # Data Transfer Objects (16 DTOs)
 ├── exception/         # Custom exceptions and global handler
@@ -247,6 +284,7 @@ src/main/java/com/ecommerce/project/
 - B-Tree indexes on frequently queried columns (emails, foreign keys, search fields)
 - Query optimization through proper index selection
 - Lazy loading preventing N+1 query problems
+- Redis caching for frequently accessed product and category data with automatic cache invalidation
 
 ### Business Logic
 - Transactional order placement ensuring atomicity across order creation, stock deduction, and cart clearing
