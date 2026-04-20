@@ -1,0 +1,29 @@
+# Build output
+target/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# Documentation
+*.md
+
+# Docker files (no need to copy into image)
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# OS files
+.DS_Store
+Thumbs.db
