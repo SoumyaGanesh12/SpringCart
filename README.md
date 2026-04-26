@@ -6,15 +6,15 @@ A production-ready e-commerce backend platform built with Spring Boot, featuring
 
 ## Features
 
-- **Authentication & Authorization** — JSON Web Token (JWT) based stateless authentication with 1-hour token expiration and role-based access control separating CUSTOMER and ADMIN operations
-- **Product Catalog** — Full product and category management with case-insensitive search, pagination, and sorting with customizable parameters
-- **Shopping Cart** — Real-time cart management with stock validation, price snapshots, and automatic total calculation
-- **Order Management** — Transactional order placement with automatic stock deduction, order lifecycle tracking, and stock restoration on cancellation
-- **Payment Processing** — Stripe PaymentIntent integration with webhook-based payment confirmation and automatic refunds on order cancellation
-- **Caching** — Redis caching for frequently accessed product and category data with automatic cache invalidation on updates
-- **Security** — BCrypt password encryption, protected endpoints with fine-grained authorization, and Stripe webhook signature verification
-- **Data Integrity** — ACID-compliant transactions, price snapshots for historical accuracy, soft delete for user deactivation, and custom ID generation (sequential for users, UUID for orders)
-- **API Design** — RESTful endpoints with Data Transfer Object (DTO) pattern, global exception handling, and Jakarta Bean Validation for input constraints
+- **Authentication & Authorization** - JSON Web Token (JWT) based stateless authentication with 1-hour token expiration and role-based access control separating CUSTOMER and ADMIN operations
+- **Product Catalog** - Full product and category management with case-insensitive search, pagination, and sorting with customizable parameters
+- **Shopping Cart** - Real-time cart management with stock validation, price snapshots, and automatic total calculation
+- **Order Management** - Transactional order placement with automatic stock deduction, order lifecycle tracking, and stock restoration on cancellation
+- **Payment Processing** - Stripe PaymentIntent integration with webhook-based payment confirmation and automatic refunds on order cancellation
+- **Caching** - Redis caching for frequently accessed product and category data with automatic cache invalidation on updates
+- **Security** - BCrypt password encryption, protected endpoints with fine-grained authorization, and Stripe webhook signature verification
+- **Data Integrity** - ACID-compliant transactions, price snapshots for historical accuracy, soft delete for user deactivation, and custom ID generation (sequential for users, UUID for orders)
+- **API Design** - RESTful endpoints with Data Transfer Object (DTO) pattern, global exception handling, and Jakarta Bean Validation for input constraints
 
 ---
 
@@ -35,67 +35,83 @@ A production-ready e-commerce backend platform built with Spring Boot, featuring
 
 ---
 
+## Project Structure
+
+```
+src/main/java/com/ecommerce/project/
+├── config/        # Redis, Stripe configuration
+├── controller/    # REST controllers (7 controllers)
+├── dto/           # Data Transfer Objects
+├── exception/     # Custom exceptions and global handler
+├── model/         # JPA entities (7 entities)
+├── repository/    # Data access layer
+├── security/      # JWT filter, Spring Security config
+└── service/       # Business logic layer
+```
+
+---
+
 ## Complete Application Flow
 
 ```
-                        CLIENT REQUEST
+                             CLIENT REQUEST
+                                   │
+                                   ▼
+                    ┌──────────────────────────┐
+                    │  Spring Security Filter   │
+                    │  Validate JWT Token       │
+                    │  Check Role Permissions   │
+                    └──────────────────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────┐
+                    │      REST Controllers     │
+                    │  Auth / Products / Cart   │
+                    │    Orders / Payments      │
+                    └──────────────────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────┐
+                    │       Service Layer       │
+                    │    Business Logic +       │
+                    │  Transaction Management   │
+                    └──────────────────────────┘
+                         │                │
+               ┌─────────┘                └──────────┐
+               ▼                                     ▼
+  ┌──────────────────────┐           ┌───────────────────────┐
+  │      Redis Cache      │           │     MySQL Database     │
+  │  Categories/Products  │           │  Users / Products      │
+  │  Auto-invalidation    │           │  Orders / Cart         │
+  └──────────────────────┘           └───────────────────────┘
+                                                 │
+                              ┌──────────────────┘
+                              ▼
+                 ┌─────────────────────────┐
+                 │       Stripe API         │
+                 │  Create PaymentIntent    │
+                 │  Returns pi_xxx secret   │
+                 └─────────────────────────┘
                               │
                               ▼
-               ┌──────────────────────────┐
-               │  Spring Security Filter   │
-               │  Validate JWT Token       │
-               │  Check Role Permissions   │
-               └──────────────────────────┘
+                 ┌─────────────────────────┐
+                 │    Payment Confirmed     │
+                 │  Stripe fires Webhook    │
+                 │  payment_intent.succeeded│
+                 └─────────────────────────┘
                               │
                               ▼
-               ┌──────────────────────────┐
-               │     REST Controllers      │
-               │  Auth / Products / Cart   │
-               │  Orders / Payments        │
-               └──────────────────────────┘
-                              │
-                              ▼
-               ┌──────────────────────────┐
-               │      Service Layer        │
-               │    Business Logic +       │
-               │  Transaction Management   │
-               └──────────────────────────┘
-                    │              │
-          ┌─────────┘              └──────────┐
-          ▼                                   ▼
-┌──────────────────┐              ┌───────────────────┐
-│   Redis Cache     │              │   MySQL Database   │
-│  Categories       │              │  Users / Products  │
-│  Products         │              │  Orders / Cart     │
-└──────────────────┘              └───────────────────┘
-                                             │
-                        ┌────────────────────┘
-                        ▼
-           ┌─────────────────────┐
-           │     Stripe API       │
-           │  Create Payment      │
-           │  Intent (pi_xxx)     │
-           └─────────────────────┘
-                        │
-                        ▼
-           ┌─────────────────────┐
-           │  Payment Confirmed   │
-           │  Stripe fires        │
-           │  Webhook Event       │
-           └─────────────────────┘
-                        │
-                        ▼
-           ┌─────────────────────┐
-           │  Webhook Controller  │
-           │  Verify Signature    │
-           │  Order → CONFIRMED   │
-           └─────────────────────┘
+                 ┌─────────────────────────┐
+                 │    Webhook Controller    │
+                 │   Verify Signature       │
+                 │   Order → CONFIRMED      │
+                 └─────────────────────────┘
 
-─────────────────────────────────────────────────────
-ORDER LIFECYCLE:
-PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED
-  │
-  └── Cancel (before SHIPPED) → Stripe Refund + Stock Restored
+  ─────────────────────────────────────────────────────────────
+  ORDER LIFECYCLE:
+  PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED
+    │
+    └── Cancel (before SHIPPED) → Stripe Refund + Stock Restored
 ```
 
 ---
@@ -188,19 +204,17 @@ git clone https://github.com/SoumyaGanesh12/SpringCart.git
 cd SpringCart
 ```
 
-2. Create `.env` from the example
+2. Create `.env` from the example and fill in your values
 ```bash
 cp .env.example .env
 ```
-Fill in your values in `.env`
 
 3. Start all services
 ```bash
 docker-compose up --build
 ```
 
-App runs at `http://localhost:8080`
-MySQL on port `3307` · Redis on port `6380`
+App runs at `http://localhost:8080` · MySQL on port `3307` · Redis on port `6380`
 
 ---
 
@@ -218,7 +232,7 @@ FLUSH PRIVILEGES;
 
 **Redis Setup (Windows):**
 1. Download Memurai from https://www.memurai.com/get-memurai
-2. Install — runs automatically as a Windows service
+2. Install - runs automatically as a Windows service
 3. Verify: `memurai-cli ping` → should return `PONG`
 
 **Run the application:**
@@ -248,7 +262,7 @@ mvn spring-boot:run
 stripe login
 ```
 
-4. Start webhook forwarding — keep this running
+4. Start webhook forwarding - keep this running
 ```bash
 stripe listen --forward-to localhost:8080/api/webhooks/stripe
 ```
@@ -259,7 +273,7 @@ Copy the `whsec_xxx` secret to your config
 stripe payment_intents confirm pi_xxx --payment-method=pm_card_visa
 ```
 
-> All Stripe testing uses test mode — no real charges are made
+> All Stripe testing uses test mode - no real charges are made
 
 ---
 
@@ -275,7 +289,7 @@ Redis caching reduces database load for frequently accessed data:
 | `products` | `getProductById()` | Update / Delete |
 | `productsByCategory` | `getProductsByCategory()` | Update / Delete |
 
-**Not cached by design:** Paginated results, search results, cart data, and stock quantities — these require real-time accuracy or have too many key variations.
+**Not cached by design:** Paginated results, search results, cart data, and stock quantities - these require real-time accuracy or have too many key variations.
 
 ---
 
@@ -298,20 +312,4 @@ mvn clean test
 
 # View detailed HTML coverage report
 open target/site/jacoco/index.html
-```
-
----
-
-## Project Structure
-
-```
-src/main/java/com/ecommerce/project/
-├── config/        # Redis, Stripe configuration
-├── controller/    # REST controllers (7 controllers)
-├── dto/           # Data Transfer Objects
-├── exception/     # Custom exceptions and global handler
-├── model/         # JPA entities (7 entities)
-├── repository/    # Data access layer
-├── security/      # JWT filter, Spring Security config
-└── service/       # Business logic layer
 ```
