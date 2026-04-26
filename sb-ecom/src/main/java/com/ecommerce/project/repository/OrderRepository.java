@@ -27,4 +27,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>{
 	
 	// Find all orders with pagination
 	Page<Order> findAll(Pageable pageable);
+	
+	// Find payment intent id for the order
+	Optional<Order> findByPaymentIntentId(String paymentIntentId);
 }

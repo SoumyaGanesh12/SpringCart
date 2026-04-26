@@ -35,4 +35,5 @@ mvnw.cmd
 # Spring Boot
 application-local.properties
 application-secret.properties
+application-dev.properties
 .env

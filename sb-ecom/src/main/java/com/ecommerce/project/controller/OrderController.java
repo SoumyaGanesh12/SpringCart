@@ -45,7 +45,7 @@ public class OrderController {
     private String getCurrentUserId() {
     	Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     	
-    	if(auth == null || !!auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+    	if(auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
     		throw new BadRequestException("User not authenticated");
     	}
     	

@@ -44,6 +44,9 @@ public class OrderServiceImpl implements OrderService {
 	@Autowired
     private UserRepository userRepo;
 	
+	@Autowired
+	private PaymentService paymentService;
+	
 	// Get authenticated user
 //	private User getAuthenticatedUser() {
 //		Object principal = SecurityContextHolder.getContext()
@@ -207,6 +210,12 @@ public class OrderServiceImpl implements OrderService {
 		// Update order status
 		order.setStatus(Order.OrderStatus.CANCELLED);
 		Order cancelledOrder = orderRepo.save(order);
+		
+		// Refund if payment was done
+		if(order.getPaymentIntentId() != null) {
+			paymentService.refundPayment(order.getPaymentIntentId());
+		}
+		
 		return convertToResponseDTO(cancelledOrder);
 	}
 	

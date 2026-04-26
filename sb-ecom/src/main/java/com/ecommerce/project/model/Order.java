@@ -54,6 +54,9 @@ public class Order {
 	@Column(nullable=false, length=500)
 	private String shippingAddress;
 	
+	@Column(name="payment_intent_id")
+	private String paymentIntentId;
+	
 	@OneToMany(mappedBy="order", cascade=CascadeType.ALL, orphanRemoval=true)
 	private List<OrderItem> orderItems = new ArrayList<>();
 	
