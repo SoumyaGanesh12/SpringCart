@@ -1,6 +1,6 @@
 # SpringCart
 
-A production-ready e-commerce backend platform built with Spring Boot, featuring JSON Web Token (JWT) authentication, Redis caching, Stripe payment processing, and transactional order workflows.
+A production-ready e-commerce backend platform built with Java and Spring Boot, featuring JSON Web Token (JWT) authentication, Redis caching, Stripe payment processing, and transactional order workflows.
 
 ---
 
@@ -23,15 +23,14 @@ A production-ready e-commerce backend platform built with Spring Boot, featuring
 | Layer | Technology |
 |-------|-----------|
 | Framework | Spring Boot 3.x, Spring Web, Spring Security, Spring Data Java Persistence API (JPA) |
-| Object Relational Mapping (ORM) | Hibernate ORM |
-| Database | MySQL 8.x (production), H2 (testing) |
+| Database | MySQL 8.x (production), H2 (testing), Hibernate ORM |
 | Caching | Redis (Memurai for Windows) |
 | Security | JSON Web Token (JWT), BCrypt |
 | Payments | Stripe API |
 | Containerization | Docker, Docker Compose |
 | Validation | Jakarta Bean Validation |
 | Testing | JUnit 5, Mockito, JaCoCo |
-| Build Tools | Java 17, Maven, Lombok |
+| Build Tools | Java 21, Maven, Lombok |
 
 ---
 
@@ -58,53 +57,53 @@ src/main/java/com/ecommerce/project/
                                    │
                                    ▼
                     ┌──────────────────────────┐
-                    │  Spring Security Filter   │
-                    │  Validate JWT Token       │
-                    │  Check Role Permissions   │
+                    │  Spring Security Filter  │
+                    │  Validate JWT Token      │
+                    │  Check Role Permissions  │
                     └──────────────────────────┘
                                    │
                                    ▼
                     ┌──────────────────────────┐
-                    │      REST Controllers     │
-                    │  Auth / Products / Cart   │
-                    │    Orders / Payments      │
+                    │      REST Controllers    │
+                    │  Auth / Products / Cart  │
+                    │    Orders / Payments     │
                     └──────────────────────────┘
                                    │
                                    ▼
                     ┌──────────────────────────┐
-                    │       Service Layer       │
-                    │    Business Logic +       │
-                    │  Transaction Management   │
+                    │       Service Layer      │
+                    │    Business Logic +      │
+                    │  Transaction Management  │
                     └──────────────────────────┘
                          │                │
                ┌─────────┘                └──────────┐
                ▼                                     ▼
   ┌──────────────────────┐           ┌───────────────────────┐
-  │      Redis Cache      │           │     MySQL Database     │
-  │  Categories/Products  │           │  Users / Products      │
-  │  Auto-invalidation    │           │  Orders / Cart         │
+  │      Redis Cache     │           │     MySQL Database    │
+  │  Categories/Products │           │  Users / Products     │
+  │  Auto-invalidation   │           │  Orders / Cart        │
   └──────────────────────┘           └───────────────────────┘
                                                  │
                               ┌──────────────────┘
                               ▼
                  ┌─────────────────────────┐
-                 │       Stripe API         │
-                 │  Create PaymentIntent    │
-                 │  Returns pi_xxx secret   │
+                 │       Stripe API        │
+                 │  Create PaymentIntent   │
+                 │  Returns pi_xxx secret  │
                  └─────────────────────────┘
                               │
                               ▼
-                 ┌─────────────────────────┐
-                 │    Payment Confirmed     │
-                 │  Stripe fires Webhook    │
-                 │  payment_intent.succeeded│
-                 └─────────────────────────┘
+                 ┌───────────────────────────┐
+                 │    Payment Confirmed      │
+                 │  Stripe fires Webhook     │
+                 │  payment_intent.succeeded │
+                 └───────────────────────────┘
                               │
                               ▼
                  ┌─────────────────────────┐
-                 │    Webhook Controller    │
-                 │   Verify Signature       │
-                 │   Order → CONFIRMED      │
+                 │    Webhook Controller   │
+                 │   Verify Signature      │
+                 │   Order → CONFIRMED     │
                  └─────────────────────────┘
 
   ─────────────────────────────────────────────────────────────
@@ -119,11 +118,11 @@ src/main/java/com/ecommerce/project/
 ## Entity Relationships
 
 ```
-Category  (1) ──► (Many) Product
-User      (1) ──► (1)    Cart
-User      (1) ──► (Many) Order
-Cart      (1) ──► (Many) CartItem  ──► (1) Product
-Order     (1) ──► (Many) OrderItem ──► (1) Product
+Category  (1) ──> (Many) Product
+User      (1) ──> (1)    Cart
+User      (1) ──> (Many) Order
+Cart      (1) ──> (Many) CartItem  ──> (1) Product
+Order     (1) ──> (Many) OrderItem ──> (1) Product
 ```
 
 ---
@@ -220,12 +219,12 @@ App runs at `http://localhost:8080` · MySQL on port `3307` · Redis on port `63
 
 ### Option 2: Local Setup
 
-**Prerequisites:** Java 17, Maven, MySQL 8.x, Redis
+**Prerequisites:** Java 21, Maven, MySQL 8.x, Redis
 
 **MySQL Setup:**
 ```sql
 CREATE DATABASE springcart;
-CREATE USER 'springcart_user'@'localhost' IDENTIFIED BY 'springcart123';
+CREATE USER 'springcart_user'@'localhost' IDENTIFIED BY 'your_password';
 GRANT ALL PRIVILEGES ON springcart.* TO 'springcart_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
