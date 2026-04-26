@@ -1,104 +1,186 @@
 # SpringCart
 
-A production-ready e-commerce backend platform built with Spring Boot, featuring JWT authentication, complex JPA relationships, and transactional workflows for secure and scalable online commerce operations.
-
----
-
-## Description
-
-SpringCart is a full-featured RESTful e-commerce API that manages the complete customer lifecycle from product browsing to order fulfillment. The platform provides secure user authentication, real-time inventory management, and transactional order processing with automatic stock control.
-
-Built with Spring Boot and Spring Security, the application features JWT-based stateless authentication, role-based authorization for customer and administrative operations, and comprehensive error handling. The backend handles complex entity relationships across seven database tables, processes paginated product catalogs, and ensures data consistency through transactional workflows during order placement and cancellation.
-
-The system supports multiple concurrent users, maintains price snapshots for order integrity, and implements soft-delete patterns for data preservation. All endpoints follow RESTful principles with proper HTTP methods, status codes, and resource-oriented URL structures.
+A production-ready e-commerce backend platform built with Spring Boot, featuring JSON Web Token (JWT) authentication, Redis caching, Stripe payment processing, and transactional order workflows.
 
 ---
 
 ## Features
 
-### Core Functionality
-- Category and Product Management with hierarchical relationships
-- User registration and authentication with JWT tokens
-- Shopping cart with real-time total calculation and stock validation
-- Order management with transactional workflows and status tracking
-- Advanced product search with case-insensitive matching
-- Pagination and sorting with customizable parameters
-- Stock management with automatic deduction and restoration
-
-### Security
-- JWT-based stateless authentication (1-hour token expiration)
-- BCrypt password encryption
-- Role-based access control (CUSTOMER and ADMIN roles)
-- Protected endpoints with fine-grained authorization
-- Secure password storage and validation
-
-### Technical Implementation
-- DTO pattern for clean API contracts
-- Global exception handling with standardized error responses
-- Bean Validation for comprehensive input validation
-- Transaction management ensuring ACID compliance
-- Custom ID generation (sequential for users, UUID for orders)
-- Soft delete for user deactivation
-- Price snapshots for historical accuracy in orders
+- **Authentication & Authorization** — JSON Web Token (JWT) based stateless authentication with 1-hour token expiration and role-based access control separating CUSTOMER and ADMIN operations
+- **Product Catalog** — Full product and category management with case-insensitive search, pagination, and sorting with customizable parameters
+- **Shopping Cart** — Real-time cart management with stock validation, price snapshots, and automatic total calculation
+- **Order Management** — Transactional order placement with automatic stock deduction, order lifecycle tracking, and stock restoration on cancellation
+- **Payment Processing** — Stripe PaymentIntent integration with webhook-based payment confirmation and automatic refunds on order cancellation
+- **Caching** — Redis caching for frequently accessed product and category data with automatic cache invalidation on updates
+- **Security** — BCrypt password encryption, protected endpoints with fine-grained authorization, and Stripe webhook signature verification
+- **Data Integrity** — ACID-compliant transactions, price snapshots for historical accuracy, soft delete for user deactivation, and custom ID generation (sequential for users, UUID for orders)
+- **API Design** — RESTful endpoints with Data Transfer Object (DTO) pattern, global exception handling, and Jakarta Bean Validation for input constraints
 
 ---
 
 ## Tech Stack
 
-**Backend Framework**
-- Spring Boot 3.x
-- Spring Data JPA
-- Spring Security
-- Spring Web
-
-**Database & ORM**
-- MySQL 8.x (Production)
-- H2 Database (Testing)
-- Hibernate ORM
-
-**Security**
-- JSON Web Tokens (JWT)
-- BCrypt Password Encryption
-
-**Caching**
-- Redis (Memurai for Windows)
-- Spring Cache Abstraction
-
-**Build & Tools**
-- Java 17
-- Maven
-- Lombok
-- Jakarta Bean Validation
+| Layer | Technology |
+|-------|-----------|
+| Framework | Spring Boot 3.x, Spring Web, Spring Security, Spring Data Java Persistence API (JPA) |
+| Object Relational Mapping (ORM) | Hibernate ORM |
+| Database | MySQL 8.x (production), H2 (testing) |
+| Caching | Redis (Memurai for Windows) |
+| Security | JSON Web Token (JWT), BCrypt |
+| Payments | Stripe API |
+| Containerization | Docker, Docker Compose |
+| Validation | Jakarta Bean Validation |
+| Testing | JUnit 5, Mockito, JaCoCo |
+| Build Tools | Java 17, Maven, Lombok |
 
 ---
 
-## Setup Instructions
+## Complete Application Flow
 
-### Prerequisites
-- Java 17 or higher
-- Maven 3.6+
-- MySQL 8.x
-- Redis (or Memurai for Windows)
+```
+                        CLIENT REQUEST
+                              │
+                              ▼
+               ┌──────────────────────────┐
+               │  Spring Security Filter   │
+               │  Validate JWT Token       │
+               │  Check Role Permissions   │
+               └──────────────────────────┘
+                              │
+                              ▼
+               ┌──────────────────────────┐
+               │     REST Controllers      │
+               │  Auth / Products / Cart   │
+               │  Orders / Payments        │
+               └──────────────────────────┘
+                              │
+                              ▼
+               ┌──────────────────────────┐
+               │      Service Layer        │
+               │    Business Logic +       │
+               │  Transaction Management   │
+               └──────────────────────────┘
+                    │              │
+          ┌─────────┘              └──────────┐
+          ▼                                   ▼
+┌──────────────────┐              ┌───────────────────┐
+│   Redis Cache     │              │   MySQL Database   │
+│  Categories       │              │  Users / Products  │
+│  Products         │              │  Orders / Cart     │
+└──────────────────┘              └───────────────────┘
+                                             │
+                        ┌────────────────────┘
+                        ▼
+           ┌─────────────────────┐
+           │     Stripe API       │
+           │  Create Payment      │
+           │  Intent (pi_xxx)     │
+           └─────────────────────┘
+                        │
+                        ▼
+           ┌─────────────────────┐
+           │  Payment Confirmed   │
+           │  Stripe fires        │
+           │  Webhook Event       │
+           └─────────────────────┘
+                        │
+                        ▼
+           ┌─────────────────────┐
+           │  Webhook Controller  │
+           │  Verify Signature    │
+           │  Order → CONFIRMED   │
+           └─────────────────────┘
 
-### Database Setup
-
-1. Install MySQL and start the service
-
-2. Create database and user
-```sql
-CREATE DATABASE springcart;
-CREATE USER 'springcart_user'@'localhost' IDENTIFIED BY 'springcart123';
-GRANT ALL PRIVILEGES ON springcart.* TO 'springcart_user'@'localhost';
-FLUSH PRIVILEGES;
+─────────────────────────────────────────────────────
+ORDER LIFECYCLE:
+PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED
+  │
+  └── Cancel (before SHIPPED) → Stripe Refund + Stock Restored
 ```
 
-### Redis Setup (Windows)
+---
 
-1. Download Memurai from https://www.memurai.com/get-memurai
-2. Install and it runs automatically as Windows service
-3. Verify: `memurai-cli ping` → should return `PONG`
+## Entity Relationships
 
-### Installation
+```
+Category  (1) ──► (Many) Product
+User      (1) ──► (1)    Cart
+User      (1) ──► (Many) Order
+Cart      (1) ──► (Many) CartItem  ──► (1) Product
+Order     (1) ──► (Many) OrderItem ──► (1) Product
+```
+
+---
+
+## API Endpoints
+
+### Authentication
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/api/auth/register` | Public | Register new user |
+| POST | `/api/auth/login` | Public | Login and receive JWT token |
+
+### Categories
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/api/public/categories` | Public | Get all categories |
+| POST | `/api/public/categories` | Public | Create category |
+| PUT | `/api/public/categories/{id}` | Public | Update category |
+| DELETE | `/api/admin/categories/{id}` | Admin | Delete category |
+
+### Products
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/api/public/products` | Public | Get all products |
+| GET | `/api/public/products/{id}` | Public | Get product by ID |
+| GET | `/api/public/products/search?keyword={keyword}` | Public | Search products |
+| GET | `/api/public/categories/{categoryId}/products` | Public | Products by category |
+| GET | `/api/public/products/page` | Public | Paginated products |
+| POST | `/api/admin/products` | Admin | Create product |
+| PUT | `/api/admin/products/{id}` | Admin | Update product |
+| DELETE | `/api/admin/products/{id}` | Admin | Delete product |
+
+### Users
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/api/admin/users` | Admin | Get all users |
+| GET | `/api/public/users/{userId}` | Public | Get user profile |
+| PUT | `/api/users/profile` | User | Update profile |
+| DELETE | `/api/admin/users/{userId}` | Admin | Deactivate user (soft delete) |
+| PATCH | `/api/admin/users/{userId}/toggle-status` | Admin | Toggle user status |
+
+### Shopping Cart
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/api/cart` | User | Get cart |
+| POST | `/api/cart/add` | User | Add product to cart |
+| PUT | `/api/cart/items/{itemId}` | User | Update item quantity |
+| DELETE | `/api/cart/items/{itemId}` | User | Remove item |
+| DELETE | `/api/cart` | User | Clear cart |
+
+### Orders
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/api/users/{userId}/orders/place` | User | Place order from cart |
+| GET | `/api/orders/{orderId}` | User | Get order by ID |
+| GET | `/api/orders` | User | Get order history |
+| PATCH | `/api/orders/{orderId}/cancel` | User/Admin | Cancel order |
+| GET | `/api/admin/orders` | Admin | Get all orders |
+| PATCH | `/api/admin/orders/{orderId}/status` | Admin | Update order status |
+
+### Payments
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/api/payments/create-intent` | User | Create Stripe PaymentIntent |
+| POST | `/api/webhooks/stripe` | Stripe | Receive webhook events |
+
+---
+
+## Running the Application
+
+### Option 1: Docker
+
+**Prerequisites:** Docker Desktop
 
 1. Clone the repository
 ```bash
@@ -106,145 +188,117 @@ git clone https://github.com/SoumyaGanesh12/SpringCart.git
 cd SpringCart
 ```
 
-2. Build the project
+2. Create `.env` from the example
 ```bash
-mvn clean install
+cp .env.example .env
+```
+Fill in your values in `.env`
+
+3. Start all services
+```bash
+docker-compose up --build
 ```
 
-3. Run the application
+App runs at `http://localhost:8080`
+MySQL on port `3307` · Redis on port `6380`
+
+---
+
+### Option 2: Local Setup
+
+**Prerequisites:** Java 17, Maven, MySQL 8.x, Redis
+
+**MySQL Setup:**
+```sql
+CREATE DATABASE springcart;
+CREATE USER 'springcart_user'@'localhost' IDENTIFIED BY 'springcart123';
+GRANT ALL PRIVILEGES ON springcart.* TO 'springcart_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+**Redis Setup (Windows):**
+1. Download Memurai from https://www.memurai.com/get-memurai
+2. Install — runs automatically as a Windows service
+3. Verify: `memurai-cli ping` → should return `PONG`
+
+**Run the application:**
+1. Clone the repository
+```bash
+git clone https://github.com/SoumyaGanesh12/SpringCart.git
+cd SpringCart
+```
+
+2. Create `src/main/resources/application-dev.properties` from `application-dev.properties.example` and fill in your values
+
+3. Start the app
 ```bash
 mvn spring-boot:run
 ```
 
-The application starts on `http://localhost:8080`
-
-### H2 Database Console (Optional)
-- URL: `http://localhost:8080/h2-console`
-- JDBC URL: `jdbc:h2:file:./data/springcart`
-- Username: `sa`
-- Password: (leave empty)
-
-### Configuration
-**Production (MySQL)** - `src/main/resources/application.properties`
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/springcart?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-spring.datasource.username=springcart_user
-spring.datasource.password=springcart123
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
-```
-
-**Testing (H2)** - `src/test/resources/application.properties`
-```properties
-spring.datasource.url=jdbc:h2:mem:testdb
-spring.datasource.username=sa
-spring.datasource.password=
-spring.datasource.driver-class-name=org.h2.Driver
-
-spring.jpa.hibernate.ddl-auto=create-drop
-```
-**Redis** - `src/main/resources/application.properties`
-```properties
-spring.data.redis.host=localhost
-spring.data.redis.port=6379
-spring.cache.type=redis
-```
 ---
 
-## Database Schema
+## Stripe Payment Testing
 
-### Entity Relationships
-```
-Category (1) ←——→ (Many) Product
-User (1) ←——→ (1) Cart
-User (1) ←——→ (Many) Order
-Cart (1) ←——→ (Many) CartItem
-CartItem (Many) ←——→ (1) Product
-Order (1) ←——→ (Many) OrderItem
-OrderItem (Many) ←——→ (1) Product
+1. Create a Stripe account at https://stripe.com and get your test API keys
+
+2. Install Stripe CLI from https://stripe.com/docs/stripe-cli
+
+3. Login
+```bash
+stripe login
 ```
 
-### Database Indexes
-Indexes are configured for optimized query performance:
+4. Start webhook forwarding — keep this running
+```bash
+stripe listen --forward-to localhost:8080/api/webhooks/stripe
+```
+Copy the `whsec_xxx` secret to your config
 
-| Table | Indexed Columns | Purpose |
-|-------|-----------------|---------|
-| products | product_name, category_id | Product search and category filtering |
-| users | email, user_id | Login lookup and API queries |
-| orders | user_id, order_id | Order history and tracking |
-| carts | user_id | Cart retrieval |
-| cart_items | cart_id, product_id | Cart item lookups |
-| order_items | order_id, product_id | Order item retrieval |
+5. Confirm a payment intent to simulate payment
+```bash
+stripe payment_intents confirm pi_xxx --payment-method=pm_card_visa
+```
 
-### Caching
-
-Redis caching is implemented to reduce database load for frequently accessed data:
-
-| Cache Name | Method | TTL |
-|------------|--------|-----|
-| allCategories | getAllCategories() | 10 min |
-| categories | getCategoryById() | 10 min |
-| allProducts | getAllProducts() | 10 min |
-| products | getProductById() | 10 min |
-| productsByCategory | getProductsByCategory() | 10 min |
-
-Cache invalidation is handled automatically via `@CacheEvict` when data is created, updated, or deleted.
-
-**Not Cached (by design):**
-- Paginated results (too many key variations)
-- Search results (infinite keyword combinations)
-- Shopping cart (user-specific, frequently changing)
-- Stock quantities (requires real-time accuracy)
+> All Stripe testing uses test mode — no real charges are made
 
 ---
 
-## API Endpoints
+## Caching Strategy
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login and receive JWT token
+Redis caching reduces database load for frequently accessed data:
 
-### Categories
-- `GET /api/public/categories` - Get all categories
-- `POST /api/public/categories` - Create category
-- `PUT /api/public/categories/{id}` - Update category
-- `DELETE /api/admin/categories/{id}` - Delete category (Admin only)
+| Cache | Method | Invalidated On |
+|-------|--------|---------------|
+| `allCategories` | `getAllCategories()` | Create / Update / Delete |
+| `categories` | `getCategoryById()` | Update / Delete |
+| `allProducts` | `getAllProducts()` | Create / Update / Delete |
+| `products` | `getProductById()` | Update / Delete |
+| `productsByCategory` | `getProductsByCategory()` | Update / Delete |
 
-### Products
-- `GET /api/public/products` - Get all products
-- `GET /api/public/products/{id}` - Get product by ID
-- `GET /api/public/products/search?keyword={keyword}` - Search products
-- `GET /api/public/categories/{categoryId}/products` - Get products by category
-- `GET /api/public/products/page?page={page}&size={size}&sortBy={field}&sortDir={direction}` - Paginated products
-- `POST /api/admin/products` - Create product (Admin only)
-- `PUT /api/admin/products/{id}` - Update product (Admin only)
-- `DELETE /api/admin/products/{id}` - Delete product (Admin only)
+**Not cached by design:** Paginated results, search results, cart data, and stock quantities — these require real-time accuracy or have too many key variations.
 
-### Users
-- `GET /api/admin/users` - Get all users (Admin only)
-- `GET /api/public/users/{userId}` - Get user profile
-- `PUT /api/users/profile` - Update current user's profile
-- `DELETE /api/admin/users/{userId}` - Deactivate user (Admin only)
-- `PATCH /api/admin/users/{userId}/toggle-status` - Toggle user status (Admin only)
+---
 
-### Shopping Cart
-- `GET /api/cart` - Get current user's cart
-- `POST /api/cart/add` - Add product to cart
-- `PUT /api/cart/items/{itemId}` - Update item quantity
-- `DELETE /api/cart/items/{itemId}` - Remove item from cart
-- `DELETE /api/cart` - Clear cart
+## Testing
 
-### Orders
-- `POST /api/orders/place` - Place order from cart
-- `GET /api/orders/{orderId}` - Get order by ID
-- `GET /api/orders` - Get current user's order history
-- `PATCH /api/orders/{orderId}/cancel` - Cancel order
-- `GET /api/admin/orders` - Get all orders (Admin only)
-- `GET /api/admin/orders/page?page={page}&size={size}` - Paginated orders (Admin only)
-- `PATCH /api/admin/orders/{orderId}/status` - Update order status (Admin only)
+| Metric | Value |
+|--------|-------|
+| Total Tests | 56 unit tests |
+| Service Layer Coverage | 87% |
+| Overall Coverage | 60% |
+| Framework | JUnit 5 + Mockito |
+| Coverage Reports | JaCoCo |
+
+```bash
+# Run all tests
+mvn test
+
+# Run with JaCoCo coverage report
+mvn clean test
+
+# View detailed HTML coverage report
+open target/site/jacoco/index.html
+```
 
 ---
 
@@ -252,102 +306,12 @@ Cache invalidation is handled automatically via `@CacheEvict` when data is creat
 
 ```
 src/main/java/com/ecommerce/project/
-├── config/            # Configuration classes (Redis)
-├── controller/        # REST API endpoints (6 controllers)
-├── dto/               # Data Transfer Objects (16 DTOs)
-├── exception/         # Custom exceptions and global handler
-├── model/             # JPA entities (7 entities)
-├── repository/        # Data access layer (7 repositories)
-├── security/          # JWT and Spring Security configuration
-└── service/           # Business logic layer (8 services)
+├── config/        # Redis, Stripe configuration
+├── controller/    # REST controllers (7 controllers)
+├── dto/           # Data Transfer Objects
+├── exception/     # Custom exceptions and global handler
+├── model/         # JPA entities (7 entities)
+├── repository/    # Data access layer
+├── security/      # JWT filter, Spring Security config
+└── service/       # Business logic layer
 ```
-
----
-
-## Key Technical Implementations
-
-### Authentication & Security
-- JWT-based stateless authentication with 1-hour token expiration
-- BCrypt password hashing with salt for secure storage
-- Role-based access control separating CUSTOMER and ADMIN operations
-- Custom JWT filter validating tokens on every request
-
-### Database & JPA
-- MySQL for production with optimized indexing strategy
-- H2 in-memory database for fast, isolated testing
-- Complex entity relationships: OneToOne, OneToMany, ManyToOne
-- Lazy loading fetch strategies for optimized performance
-- Custom repository query methods for search and filtering
-- Pagination using Spring Data Pageable interface
-
-### Performance Optimization
-- B-Tree indexes on frequently queried columns (emails, foreign keys, search fields)
-- Query optimization through proper index selection
-- Lazy loading preventing N+1 query problems
-- Redis caching for frequently accessed product and category data with automatic cache invalidation
-
-### Business Logic
-- Transactional order placement ensuring atomicity across order creation, stock deduction, and cart clearing
-- Stock management with real-time validation and automatic restoration on order cancellation
-- Price snapshots preserving historical pricing in cart and order items
-- Order lifecycle management with status transitions and business rule enforcement
-
-### API Design
-- DTO pattern separating API contracts from database entities
-- Global exception handling with @RestControllerAdvice
-- Bean Validation for declarative input constraints
-- RESTful design with proper HTTP methods and status codes
-- User identity extraction from JWT tokens for secure operations
-
----
-
-## Testing
-
-Comprehensive unit test suite for the service layer using JUnit 5 and Mockito, achieving high code coverage across business logic components.
-
-### Test Statistics
-- **Total Tests:** 56 unit tests
-- **Service Layer Coverage:** 87%
-- **Overall Project Coverage:** 60%
-- **Testing Framework:** JUnit 5
-- **Mocking Framework:** Mockito
-
-### Test Coverage by Service
-- **CategoryServiceImpl:** 6 tests - CRUD operations, duplicate validation, error scenarios
-- **ProductServiceImpl:** 13 tests - Product management, pagination, search, category relationships
-- **UserServiceImpl:** 9 tests - Registration, authentication, profile management, soft delete
-- **CartServiceImpl:** 12 tests - Cart operations, stock validation, duplicate product handling
-- **OrderServiceImpl:** 16 tests - Order placement, cancellation, stock restoration, permission checks
-
-### Testing Approach
-- Service layer tested in isolation with mocked repository dependencies
-- Arrange-Act-Assert pattern for clear and maintainable test structure
-- Comprehensive coverage of happy paths and error scenarios
-- Business rule validation including stock management and order lifecycle
-- Transaction behavior and data integrity verification
-- H2 in-memory database for integration tests ensuring test isolation
-
-### Running Tests
-```bash
-# Run all tests
-mvn test
-
-# Run tests with coverage report
-mvn clean test
-
-# View detailed coverage report
-open target/site/jacoco/index.html
-```
-
-### Code Coverage Report
-JaCoCo generates detailed HTML reports showing:
-- Line and branch coverage by package and class
-- Visual code highlighting (green: covered, red: not covered)
-- Method-level coverage metrics
-- Overall project statistics
-
----
-
-## License
-
-This project is licensed under the MIT License.
